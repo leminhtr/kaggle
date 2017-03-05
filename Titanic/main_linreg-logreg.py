@@ -12,14 +12,14 @@ titanic=pd.read_csv("train.csv")
 #print(titanic.describe())
 #print(titanic.head(5))
 
-# ------------------- DATA CORRECTION -----------------
+# ------------------- DATA CORRECTION --------------------------------
 
 # 1) Fill missing Age data with median
 titanic["Age"]=titanic["Age"].fillna(titanic["Age"].median())
 
 # 2) Convert Sex string with 0 or 1
 titanic.loc[titanic["Sex"] == "male", "Sex"] = 0 #convert 0 for men
-titanic.loc[titanic["Sex"]=="female", "Sex"]=1 #convert 1 for women
+titanic.loc[titanic["Sex"] =="female", "Sex"]=1 #convert 1 for women
 
 # 3) Fill missing Embarked data with most common char
 print(pd.value_counts(titanic["Embarked"].values, sort=False))
@@ -53,6 +53,7 @@ for train, test in kf:
     train_target= titanic["Survived"].iloc[train]
 
     # Train the algo with the predictors and target
+    # .fit(x input, y output)
     algo_linreg.fit(train_predictors, train_target)
     # Make predictions with the trained algo on test fold
     test_predictions = algo_linreg.predict(titanic[predictors].iloc[test,:])
@@ -84,13 +85,37 @@ scores = cross_validation.cross_val_score(algo_logreg, titanic[predictors], tita
 print(scores.mean())
 
 
-#----------------------------------- Process test set ---------------------
+#----------------------------------- Log Reg. with test set ---------------------
 
 titanic_test = pd.read_csv("test.csv")
 
+# I) Clean data
+titanic_test["Age"] = titanic_test["Age"].fillna(titanic["Age"].median())
+titanic_test["Fare"] = titanic_test["Fare"].fillna(titanic_test["Fare"].median())
+titanic_test.loc[titanic_test["Sex"] == "male", "Sex"] = 0
+titanic_test.loc[titanic_test["Sex"] == "female", "Sex"] = 1
+titanic_test["Embarked"] = titanic_test["Embarked"].fillna("S")
 
+titanic_test.loc[titanic_test["Embarked"] == "S", "Embarked"] = 0
+titanic_test.loc[titanic_test["Embarked"] == "C", "Embarked"] = 1
+titanic_test.loc[titanic_test["Embarked"] == "Q", "Embarked"] = 2
 
+# II) Test algo on data
 
+# Initialize the algo
+algo_logreg_test=logreg(random_state=1)
 
+# Train algo on using all training data
+algo_logreg_test.fit(titanic[predictors], titanic["Survived"])
 
+# Make predictions with algo on data
+predictions=algo_logreg_test.predict(titanic_test[predictors])
+
+# Generate new dataset for kaggle submission
+submission= pd.DataFrame({
+    "PassengerId" : titanic_test["PassengerId"],
+    "Survived": predictions
+})
+
+submission.to_csv("kaggle.csv", index=False)
 
